@@ -2,11 +2,23 @@ use argparse::{ArgumentParser, Store};
 use simple_logger::SimpleLogger;
 use regex::Regex;
 use anyhow::{Error, Result};
-use evtx::EvtxParser;
+use evtx::*;
 use std::path::PathBuf;
 
+struct GrepFilters {
+    data: Regex,
+    id: Regex
+}
+
+impl GrepFilters {
+    fn matches(&self, record: &SerializedEvtxRecord<std::string::String>) -> bool {
+        self.id.is_match(&record.event_record_id.to_string()) &&
+        self.data.is_match(&record.data)
+    }
+}
+
 fn main() -> Result<()> {
-    SimpleLogger::new().with_level(log::LevelFilter::Debug).init().unwrap();
+    SimpleLogger::new().with_level(log::LevelFilter::Warn).init().unwrap();
 
     let mut evtxfile = String::new();
     let mut data = String::new();
@@ -20,16 +32,27 @@ fn main() -> Result<()> {
         ap.parse_args_or_exit();
     }
 
-    let _data = Regex::new(&data)?;
-    let _id = Regex::new(&id)?;
+    let filter = GrepFilters {
+        data: Regex::new(&data)?,
+        id: Regex::new(&id)?
+    };
+
     let fp = PathBuf::from(&evtxfile);
     if ! (fp.exists() && fp.is_file()) {
         return Err(Error::msg(format!("File {} does not exist", &evtxfile)));
     }
+    
+    let mut parser = EvtxParser::from_path(fp)?;
+    for record in parser.records()
+            .filter(|r| match r {
+                Ok(_) => filter.matches(r.as_ref().unwrap()),
+                Err(e) => {log::warn!("parser error: {}", e); false} }) {
+                print_record(&record.unwrap());
+            }
     Ok(())
 }
-/*
-fn parse_regex(regex_str: &str) -> Result<Regex> {
 
+fn print_record(
+    record: &SerializedEvtxRecord<std::string::String>) {
+    println!("{:?}", &record);
 }
-*/
