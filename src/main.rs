@@ -54,5 +54,5 @@ fn main() -> Result<()> {
 
 fn print_record(
     record: &SerializedEvtxRecord<std::string::String>) {
-    println!("{:?}", &record);
+    println!("{}", &record.data);
 }
