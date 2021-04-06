@@ -1,7 +1,9 @@
 use argparse::{ArgumentParser, Store};
 use simple_logger::SimpleLogger;
 use regex::Regex;
-use anyhow::{Context, Result};
+use anyhow::{Error, Result};
+use evtx::EvtxParser;
+use std::path::PathBuf;
 
 fn main() -> Result<()> {
     SimpleLogger::new().with_level(log::LevelFilter::Debug).init().unwrap();
@@ -18,8 +20,12 @@ fn main() -> Result<()> {
         ap.parse_args_or_exit();
     }
 
-    let data = Regex::new(&data)?;
-    let id = Regex::new(&id)?;
+    let _data = Regex::new(&data)?;
+    let _id = Regex::new(&id)?;
+    let fp = PathBuf::from(&evtxfile);
+    if ! (fp.exists() && fp.is_file()) {
+        return Err(Error::msg(format!("File {} does not exist", &evtxfile)));
+    }
     Ok(())
 }
 /*
