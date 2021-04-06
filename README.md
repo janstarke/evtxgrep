@@ -1,6 +1,12 @@
 # evtxgrep
 regular expression based search in Windows Event Log files
 
+## Example
+
+```shell
+evtxgrep --id 4624 --data Administrator Security.evtx
+```
+
 ## Usage
 
 ```
