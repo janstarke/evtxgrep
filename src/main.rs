@@ -4,6 +4,7 @@ use regex::Regex;
 use anyhow::{Error, Result};
 use evtx::*;
 use std::path::PathBuf;
+use serde_json::{Value};
 
 struct GrepFilters {
     data: Regex,
@@ -12,8 +13,14 @@ struct GrepFilters {
 
 impl GrepFilters {
     fn matches(&self, record: &SerializedEvtxRecord<std::string::String>) -> bool {
-        self.id.is_match(&record.event_record_id.to_string()) &&
-        self.data.is_match(&record.data)
+        let v: Value = serde_json::from_str(&record.data).unwrap();
+        let event = &v["Event"];
+        let event_id = &event["System"]["EventID"];
+        if ! self.id.is_match(&event_id.to_string()) {
+            return false;
+        }
+        //println!("{}", &event["EventData"].to_string());
+        self.data.is_match(&event["EventData"].to_string())
     }
 }
 
@@ -43,7 +50,7 @@ fn main() -> Result<()> {
     }
     
     let mut parser = EvtxParser::from_path(fp)?;
-    for record in parser.records()
+    for record in parser.records_json()
             .filter(|r| match r {
                 Ok(_) => filter.matches(r.as_ref().unwrap()),
                 Err(e) => {log::warn!("parser error: {}", e); false} }) {
