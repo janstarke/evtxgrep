@@ -5,8 +5,10 @@ use anyhow::{Error, Result};
 use evtx::*;
 use evtx::err::EvtxError;
 use std::path::PathBuf;
-use serde_json::{Value};
+use serde_json::Value;
 use std::string::String;
+use quick_xml::Reader;
+use quick_xml::events::Event;
 
 struct GrepFilters {
     data: Regex,
@@ -26,7 +28,23 @@ struct JsonFilter {
 }
 
 impl FilterMethod for XmlFilter {
-    fn matches(&self, _record: &SerializedEvtxRecord<String>) -> bool {
+    fn matches(&self, record: &SerializedEvtxRecord<String>) -> bool {
+        let mut reader = Reader::from_str(&record.data);
+        reader.trim_text(true);
+        let mut buf = Vec::new();
+        loop {
+            match reader.read_event(&mut buf) {
+                Err(e) => log::error!("Error at position {}: {:?}", reader.buffer_position(), e),
+                Ok(Event::Eof) => break,
+                Ok(Event::Text(e))  => {
+                    let s = e.unescape_and_decode(&reader).expect("Error!");
+                    if self.filters.data.is_match(&s) {
+                        return true;
+                    }
+                }
+                _   => (),
+            }
+        }
         false
     }
 }
