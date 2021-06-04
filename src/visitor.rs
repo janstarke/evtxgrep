@@ -24,8 +24,8 @@ pub struct CsvVisitor {
 impl EvtxVisitor for CsvVisitor {
     fn visit(&self, record: &EvtxStructure) -> std::result::Result<String, EvtxParseError> {
         Ok(format!("{};{};{}",
-            record.event_record_id(),
             record.time_created()?,
+            record.provider_name(),
             record.event_id()))
     }
 }
