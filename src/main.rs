@@ -1,76 +1,39 @@
-use argparse::{ArgumentParser, Store, StoreTrue};
+use argparse::{ArgumentParser, Store};
 use simple_logger::SimpleLogger;
 use regex::Regex;
 use anyhow::{Error, Result};
 use evtx::*;
-use evtx::err::EvtxError;
 use std::path::PathBuf;
-use serde_json::Value;
 use std::string::String;
-use quick_xml::Reader;
-use quick_xml::events::Event;
+use crate::visitor::*;
 
+mod visitor;
+
+#[allow(unused)]
 struct GrepFilters {
     data: Regex,
     id: Regex
 }
 
 trait FilterMethod {
-    fn matches(&self, record: &SerializedEvtxRecord<String>) -> bool;
+    fn matches(&self, record: &EvtxStructure) -> bool;
 }
 
+#[allow(unused)]
 struct XmlFilter {
     filters: GrepFilters,
 }
 
+#[allow(unused)]
 struct JsonFilter {
     filters: GrepFilters,
 }
 
+#[allow(unused)]
 impl FilterMethod for XmlFilter {
-    fn matches(&self, record: &SerializedEvtxRecord<String>) -> bool {
-        let mut reader = Reader::from_str(&record.data);
-        reader.trim_text(true);
-        let mut buf = Vec::new();
-        loop {
-            match reader.read_event(&mut buf) {
-                Err(e) => log::error!("Error at position {}: {:?}", reader.buffer_position(), e),
-                Ok(Event::Eof) => break,
-                Ok(Event::Text(e))  => {
-                    let s = e.unescape_and_decode(&reader).expect("Error!");
-                    if self.filters.data.is_match(&s) {
-                        return true;
-                    }
-                }
-                _   => (),
-            }
-        }
-        false
-    }
-}
 
-impl FilterMethod for JsonFilter {
-    fn matches(&self, record: &SerializedEvtxRecord<std::string::String>) -> bool {
-        let v: Value = serde_json::from_str(&record.data).unwrap();
-        let event = &v["Event"];
-        let event_id = &event["System"]["EventID"];
-        if ! self.filters.id.is_match(&event_id.to_string()) {
-            return false;
-        }
-        Self::matches_value(&self.filters.data, &event["EventData"])
-    }
-}
-
-impl JsonFilter {
-    fn matches_value(regex: &Regex, value: &Value) -> bool {
-        match value {
-            Value::Null         => false,
-            Value::Bool(_)      => false,
-            Value::Number(n)    => regex.is_match(&n.to_string()),
-            Value::String(s)    => regex.is_match(s),
-            Value::Array(a)     => a.iter().fold(false, |m, x| m || Self::matches_value(&regex, x)),
-            Value::Object(o)    => o.values().fold(false, |m, x| m || Self::matches_value(&regex, x))
-        }
+    fn matches(&self, _record: &EvtxStructure) -> bool {
+        true
     }
 }
 
@@ -80,12 +43,10 @@ fn main() -> Result<()> {
     let mut evtxfile = String::new();
     let mut data = String::new();
     let mut id = String::new();
-    let mut xml_format = false;
     {
         let mut ap = ArgumentParser::new();
         ap.set_description("regular expression based search in Windows Event Log files");
         ap.refer(&mut evtxfile).add_argument("evtxfile", Store, "name of the evtx file").required();
-        ap.refer(&mut xml_format).add_option(&["-X", "--xml"], StoreTrue, "use XML format instead of JSON");
         ap.refer(&mut data).add_option(&["-D", "--data"], Store, "pattern to search for in the data section");
         ap.refer(&mut id).add_option(&["-I", "--id"], Store, "pattern used to filter event ids");
         ap.parse_args_or_exit();
@@ -105,29 +66,22 @@ fn main() -> Result<()> {
     let parser = EvtxParser::from_path(fp)?;
     let mut parser = parser.with_configuration(settings);
 
-    let records: Box<dyn Iterator<Item = Result<SerializedEvtxRecord<String>, EvtxError>>> = if xml_format {
-        Box::new(parser.records())
-    } else {
-        Box::new(parser.records_json())
-    };
+    let records = parser.records_struct();
+    let filter_method = XmlFilter {filters};
 
-    let filter_method: Box<dyn FilterMethod> = if xml_format {
-        Box::new(XmlFilter {filters})
-    } else {
-        Box::new(JsonFilter {filters})
-    };
+    let mut records: Vec<EvtxStructure> = records.filter_map(|r| match r {
+        Ok(s) => if filter_method.matches(&s) {
+            Some (s)
+        } else {
+            None
+        },
+        Err(e) => {log::warn!("parser error: {}", e); None}
+    }).collect();
+    records.sort_unstable();
+    let visitor = CsvVisitor::new();
 
-    let records = records.filter(|r| match r {
-        Ok(_) => filter_method.matches(r.as_ref().unwrap()),
-        Err(e) => {log::warn!("parser error: {}", e); false}
-    });
     for record in records {
-        print_record(&record.unwrap());
+        println!("{}", visitor.visit(&record));
     }
     Ok(())
-}
-
-fn print_record(
-    record: &SerializedEvtxRecord<std::string::String>) {
-    println!("{}", &record.data);
 }
