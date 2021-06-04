@@ -81,7 +81,10 @@ fn main() -> Result<()> {
     let visitor = CsvVisitor::new();
 
     for record in records {
-        println!("{}", visitor.visit(&record));
+        match visitor.visit(&record) {
+            Ok(s) => println!("{}", s),
+            Err(e) => log::error!("parser error for record {}: {:?}", record.event_record_id(), e),
+        }
     }
     Ok(())
 }
