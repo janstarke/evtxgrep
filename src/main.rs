@@ -78,13 +78,19 @@ fn main() -> Result<()> {
         Err(e) => {log::warn!("parser error: {}", e); None}
     }).collect();
     records.sort_unstable();
-    let visitor = CsvVisitor::new();
+    let line_printer = LinePrinter{};
+    let visitor = XmlVisitor::new(&line_printer);
 
     for record in records {
-        match visitor.visit(&record) {
-            Ok(s) => println!("{}", s),
-            Err(e) => log::error!("parser error for record {}: {:?}", record.event_record_id(), e),
-        }
+        record.visit_structure(&visitor);
     }
     Ok(())
+}
+
+struct LinePrinter {}
+
+impl LineOutput for LinePrinter {
+    fn println(&self, line: &str) {
+        println!("{}", line);
+    }
 }

@@ -16,5 +16,4 @@ simple_logger = "1.11.0"
 regex = "1.4.5"
 #serde_json = "1.0.59"
 #quick-xml = "0.22.0"
-derive-new = "0.5"
 chrono = { version = "0.4" }
