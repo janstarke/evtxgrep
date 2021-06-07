@@ -65,14 +65,23 @@ impl<'a> EvtxStructureVisitor for XmlVisitor<'a> {
         if content.is_empty() {
             self.visit_empty_element(name, attributes);
         } else {
-            let mut start_tag = format!("{}<{}{}/>", self.indent(), name, self.format_attributes(attributes));
+
+            // escape content
+            let content = if content.contains(&['<', '>', '&'][..]) {
+                format!("<[!CDATA[{}]]>", content)
+            } else {
+                content.to_owned()
+            };
+
+            // output possibly escaped element
+            let mut start_tag = format!("{}<{}{}>", self.indent(), name, self.format_attributes(attributes));
             let end_tag = format!("</{}>", name);
             if start_tag.len() + content.len() + end_tag.len() > 80 {
                 self.output.println(&start_tag);
                 self.output.println(&format!("{}{}", self.indent(), content));
                 self.output.println(&format!("{}{}", self.indent(), end_tag));
             } else {
-                start_tag.push_str(content);
+                start_tag.push_str(&content);
                 start_tag.push_str(&end_tag);
                 self.output.println(&start_tag);
             }
@@ -81,7 +90,7 @@ impl<'a> EvtxStructureVisitor for XmlVisitor<'a> {
 
     fn visit_start_element(&self, name: &str, attributes: Iter<String, String>) {
         self.output.println(
-            &format!("{}<{}{}/>", self.indent(), name, self.format_attributes(attributes))
+            &format!("{}<{}{}>", self.indent(), name, self.format_attributes(attributes))
         );
         self.enter();
     }
