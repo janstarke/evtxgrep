@@ -6,8 +6,10 @@ use evtx::*;
 use std::path::PathBuf;
 use std::string::String;
 use crate::visitor::*;
+use crate::xml_output_visitor::XmlOutputVisitor;
 
 mod visitor;
+mod xml_output_visitor;
 
 #[allow(unused)]
 struct GrepFilters {
@@ -79,7 +81,7 @@ fn main() -> Result<()> {
     }).collect();
     records.sort_unstable();
     let line_printer = LinePrinter{};
-    let visitor = XmlVisitor::new(&line_printer);
+    let visitor = XmlOutputVisitor::new(&line_printer);
 
     for record in records {
         record.visit_structure(&visitor);
