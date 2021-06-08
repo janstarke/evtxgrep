@@ -40,13 +40,13 @@ impl<'a> XmlOutputVisitor<'a> {
 }
 
 impl<'a> EvtxStructureVisitor for XmlOutputVisitor<'a> {
-    fn visit_empty_element(&self, name: &str, attributes: Iter<String, String>) {
+    fn visit_empty_element(&mut self, name: &str, attributes: Iter<String, String>) {
         self.output.println(
             &format!("{}<{}{}/>", self.indent(), name, self.format_attributes(attributes))
         );
     }
 
-    fn visit_simple_element(&self, name: &str, attributes: Iter<String, String>, content: &str) {
+    fn visit_simple_element(&mut self, name: &str, attributes: Iter<String, String>, content: &str) {
         if content.is_empty() {
             self.visit_empty_element(name, attributes);
         } else {
@@ -73,14 +73,14 @@ impl<'a> EvtxStructureVisitor for XmlOutputVisitor<'a> {
         }
     }
 
-    fn visit_start_element(&self, name: &str, attributes: Iter<String, String>) {
+    fn visit_start_element(&mut self, name: &str, attributes: Iter<String, String>) {
         self.output.println(
             &format!("{}<{}{}>", self.indent(), name, self.format_attributes(attributes))
         );
         self.enter();
     }
 
-    fn visit_end_element(&self, name: &str) {
+    fn visit_end_element(&mut self, name: &str) {
         self.leave();
         self.output.println(
             &format!("{}</{}>", self.indent(), name)

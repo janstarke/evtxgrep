@@ -6,9 +6,11 @@ use evtx::*;
 use std::path::PathBuf;
 use std::string::String;
 use crate::visitor::*;
+use crate::xml_visitor::*;
 use crate::xml_output_visitor::XmlOutputVisitor;
 
 mod visitor;
+mod xml_visitor;
 mod xml_output_visitor;
 
 #[allow(unused)]
@@ -81,10 +83,14 @@ fn main() -> Result<()> {
     }).collect();
     records.sort_unstable();
     let line_printer = LinePrinter{};
-    let visitor = XmlOutputVisitor::new(&line_printer);
+    let mut visitor = XmlOutputVisitor::new(&line_printer);
 
     for record in records {
-        record.visit_structure(&visitor);
+        let mut xml_visitor = XmlVisitor::new();
+        record.visit_structure(&mut xml_visitor);
+        println!("{}", xml_visitor.to_string());
+
+        //record.visit_structure(&mut visitor);
     }
     Ok(())
 }
