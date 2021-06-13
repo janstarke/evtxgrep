@@ -32,7 +32,7 @@ fn main() -> Result<()> {
     let parser = EvtxParser::from_path(fp)?;
     let mut parser = parser.with_configuration(settings);
 
-    let records = parser.records_to_visitor(XmlVisitorBuilder::new()).filter_map(|r|
+    let records = parser.records_to_visitor(|| XmlVisitor::new()).filter_map(|r|
         match r {
             Ok(x) => Some(x),
             Err(e) => {log::warn!("parser error: {}", e); None}

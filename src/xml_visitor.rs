@@ -1,23 +1,6 @@
-use evtx::{EvtxStructureVisitor, VisitorBuilder};
+use evtx::{EvtxStructureVisitor};
 use libxml::tree::document::{Document, SaveOptions};
 use libxml::tree::node::Node;
-
-#[derive(Clone)]
-pub struct XmlVisitorBuilder {
-}
-
-impl XmlVisitorBuilder {
-  pub fn new() -> Self {
-    Self {
-    }
-  }
-}
-
-impl VisitorBuilder<Option<String>> for XmlVisitorBuilder {
-  fn build(&self) -> Box<dyn EvtxStructureVisitor<VisitorResult=Option<String>>> {
-    Box::new(XmlVisitor::new())
-  }
-}
 
 pub struct XmlVisitor {
   doc: Document,
