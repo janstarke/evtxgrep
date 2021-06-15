@@ -1,5 +1,5 @@
 # evtxgrep
-regular expression based search in Windows Event Log files
+XPath based search in Windows Event Log files
 
 ## Example
 
