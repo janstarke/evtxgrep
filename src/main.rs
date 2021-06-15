@@ -12,14 +12,12 @@ fn main() -> Result<()> {
     SimpleLogger::new().with_level(log::LevelFilter::Warn).init().unwrap();
 
     let mut evtxfile = String::new();
-    let mut data = String::new();
-    let mut id = String::new();
+    let mut filter_str = String::new();
     {
         let mut ap = ArgumentParser::new();
         ap.set_description("regular expression based search in Windows Event Log files");
         ap.refer(&mut evtxfile).add_argument("evtxfile", Store, "name of the evtx file").required();
-        ap.refer(&mut data).add_option(&["-D", "--data"], Store, "pattern to search for in the data section");
-        ap.refer(&mut id).add_option(&["-I", "--id"], Store, "pattern used to filter event ids");
+        ap.refer(&mut filter_str).add_option(&["-F", "--filter"], Store, "XPath filter condition against which each record is being matched");
         ap.parse_args_or_exit();
     }
 
@@ -32,7 +30,13 @@ fn main() -> Result<()> {
     let parser = EvtxParser::from_path(fp)?;
     let mut parser = parser.with_configuration(settings);
 
-    let records = parser.records_to_visitor(|| XmlVisitor::new()).filter_map(|r|
+    let filter = if filter_str.is_empty() {
+        None
+    } else {
+        Some(XPathFilter::new(format!("//*[{}]", filter_str)))
+    };
+
+    let records = parser.records_to_visitor(|| XmlVisitor::new(&filter)).filter_map(|r|
         match r {
             Ok(x) => Some(x),
             Err(e) => {log::warn!("parser error: {}", e); None}
