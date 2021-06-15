@@ -1,4 +1,5 @@
-use evtx::{EvtxStructureVisitor};
+use evtx::err::SerializationResult;
+use evtx::EvtxStructureVisitor;
 use libxml::tree::document::{Document, SaveOptions};
 use libxml::tree::node::Node;
 
@@ -33,24 +34,35 @@ impl ToString for XmlVisitor {
 impl EvtxStructureVisitor for XmlVisitor {
   type VisitorResult = Option<String>;
 
-  fn get_result(&self) -> Self::VisitorResult {
+  fn get_result(
+    &self,
+    _event_record_id: u64,
+    _timestamp: chrono::DateTime<chrono::Utc>,
+  ) -> Self::VisitorResult {
     Some(self.to_string())
   }
 
   /// called when a new record starts
-  fn start_record(&mut self) {}
+  fn start_record(&mut self) -> SerializationResult<()> {
+    Ok(())
+  }
 
   /// called when the current records is finished
-  fn finalize_record(&mut self) { }
+  fn finalize_record(&mut self) -> SerializationResult<()> {
+    Ok(())
+  }
 
   // called upon element content
-  fn visit_characters(&mut self, _value: &str) {}
+  fn visit_characters(&mut self, _value: &str) -> SerializationResult<()> {
+    Ok(())
+  }
 
   fn visit_empty_element<'a, 'b>(
     &'a mut self,
     name: &'b str,
     attributes: Box<dyn Iterator<Item = (&'b str, &'b str)> + 'b>,
-  ) where
+  ) -> SerializationResult<()>
+  where
     'a: 'b,
   {
     let mut node = self
@@ -63,6 +75,7 @@ impl EvtxStructureVisitor for XmlVisitor {
     for (key, value) in attributes {
       node.set_attribute(key, value).unwrap();
     }
+    Ok(())
   }
 
   fn visit_simple_element<'a, 'b>(
@@ -70,7 +83,8 @@ impl EvtxStructureVisitor for XmlVisitor {
     name: &'b str,
     attributes: Box<dyn Iterator<Item = (&'b str, &'b str)> + 'b>,
     content: &'b str,
-  ) where
+  ) -> SerializationResult<()>
+  where
     'a: 'b,
   {
     let mut node = self
@@ -82,26 +96,29 @@ impl EvtxStructureVisitor for XmlVisitor {
     for (key, value) in attributes {
       node.set_attribute(key, value).unwrap();
     }
+    Ok(())
   }
 
   fn visit_start_element<'a, 'b>(
     &'a mut self,
     name: &'b str,
     attributes: Box<dyn Iterator<Item = (&'b str, &'b str)> + 'b>,
-  ) where
+  ) -> SerializationResult<()>
+  where
     'a: 'b,
   {
     let mut node = Node::new(name, None, &self.doc).unwrap();
 
     for (key, value) in attributes {
-      node.set_attribute(key, value).unwrap();
+      node.set_attribute(key, value)?;
     }
-    
     let _ = self.stack.last_mut().unwrap().add_child(&mut node);
     self.stack.push(node);
+    Ok(())
   }
 
-  fn visit_end_element(&mut self, _name: &str) {
+  fn visit_end_element(&mut self, _name: &str) -> SerializationResult<()> {
     self.stack.pop();
+    Ok(())
   }
 }
