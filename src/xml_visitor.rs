@@ -22,6 +22,10 @@ impl XPathFilter {
       Err(_) => panic!("unable to generate XPath context for document"),
     }
   }
+
+  pub fn filter(&self) -> &str {
+    &self.filter
+  }
 }
 
 pub struct XmlVisitor<'f> {
@@ -32,12 +36,8 @@ pub struct XmlVisitor<'f> {
 
 impl<'f> XmlVisitor<'f> {
   pub fn new(filter: &'f Option<XPathFilter>) -> Self {
-    let mut doc = Document::new().unwrap();
-    let mut stack = Vec::new();
-
-    let root = Node::new("Event", None, &doc).unwrap();
-    doc.set_root_element(&root);
-    stack.push(root);
+    let doc = Document::new().unwrap();
+    let stack = Vec::new();
 
     Self { doc, stack, filter }
   }
@@ -132,7 +132,11 @@ impl<'f> EvtxStructureVisitor for XmlVisitor<'f> {
     for (key, value) in attributes {
       node.set_attribute(key, value)?;
     }
-    let _ = self.stack.last_mut().unwrap().add_child(&mut node);
+    if self.stack.is_empty() {
+      self.doc.set_root_element(&node);
+    } else {
+      let _ = self.stack.last_mut().unwrap().add_child(&mut node);
+    }
     self.stack.push(node);
     Ok(())
   }

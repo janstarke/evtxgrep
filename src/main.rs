@@ -33,8 +33,13 @@ fn main() -> Result<()> {
     let filter = if filter_str.is_empty() {
         None
     } else {
-        Some(XPathFilter::new(format!("//*[{}]", filter_str)))
+        Some(XPathFilter::new(format!("//Event[{}]", filter_str)))
     };
+
+    #[cfg(debug_assertions)]
+    if let Some(ref filter) = filter {
+        println!("match against {}", filter.filter());
+    }
 
     let records = parser.records_to_visitor(|| XmlVisitor::new(&filter)).filter_map(|r|
         match r {
