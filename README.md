@@ -4,7 +4,7 @@ XPath based search in Windows Event Log files
 ## Example
 
 ```shell
-evtxgrep --filter "*/EventID/text()='4624' and */Data[@Name='TargetUserName']/text()='Administrator'" Security.evtx
+evtxgrep -event-id 4624 --level 0 Security.evtx
 ```
 
 ## Usage
