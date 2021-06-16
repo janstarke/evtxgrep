@@ -22,6 +22,9 @@ OPTIONS:
         --activity-id <activity_id>                    filter based on ActivityID
         --channel <channel>                            filter based on Channel
         --computer <computer>                          filter based on Computer
+    -D, --data <data_filter>...
+            key-value pair, separated by colon, to filter based on entries in the data section
+
         --event-id <event_id>                          filter based on EventID
         --event-record-id <event_record_id>            filter based on EventRecordID
         --keywords <keywords>                          filter based on Keywords
