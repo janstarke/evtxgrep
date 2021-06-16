@@ -1,6 +1,6 @@
 use crate::xml_visitor::*;
 use anyhow::{Error, Result};
-use argparse::{ArgumentParser, Store};
+use argparse::{ArgumentParser, Store, StoreTrue};
 use convert_case::{Case, Casing};
 use evtx::*;
 use simple_logger::SimpleLogger;
@@ -11,7 +11,7 @@ mod xml_visitor;
 
 #[allow(unused_assignments)]
 macro_rules! filter_opts {
-    ($sf: expr, $f: ident, $( $p:ident :: $e:ident($v: ident) ),* ) => {
+    ($sf: expr, $f: ident, $use_or: ident, $( $p:ident :: $e:ident($v: ident) ),* ) => {
         let mut args = Vec::new();
         $(
             let mut $v = String::new();
@@ -26,6 +26,8 @@ macro_rules! filter_opts {
             ap.refer(&mut $f)
                 .add_argument("evtxfile", Store, "name of the evtx file")
                 .required();
+            ap.refer(&mut $use_or)
+                .add_option(&["-O", "--or"], StoreTrue, "combine filters non-inclusively (use OR instead of AND, which is the default) ");
 
             let mut idx = 0;
             $(
@@ -50,12 +52,14 @@ fn main() -> Result<()> {
         .unwrap();
 
     let mut evtxfile = String::new();
+    let mut use_or: bool = false;
     //let mut filter_str = String::new();
     let mut filters: Vec<RecordFilterSection>= Vec::new();
 
     filter_opts!(
         filters,
         evtxfile,
+        use_or,
         SystemFilter::Provider(provider),
         SystemFilter::EventID(event_id),
         SystemFilter::Level(level),
@@ -84,7 +88,7 @@ fn main() -> Result<()> {
     let filter = if filters.is_empty() {
         None
     } else {
-        Some(XPathFilter::new(filters))
+        Some(XPathFilter::new(filters, use_or))
     };
 
     #[cfg(debug_assertions)]

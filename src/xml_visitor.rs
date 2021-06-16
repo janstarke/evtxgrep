@@ -63,8 +63,9 @@ pub struct XPathFilter {
 }
 
 impl XPathFilter {
-  pub fn new(system_filters: Vec<RecordFilterSection>) -> Self {
-    let filter = system_filters.iter().map(|f| f.to_string()).collect::<Vec<String>>().join(" and ");
+  pub fn new(system_filters: Vec<RecordFilterSection>, use_or: bool) -> Self {
+    let combination = if use_or { " or " } else { " and " };
+    let filter = system_filters.iter().map(|f| f.to_string()).collect::<Vec<String>>().join(combination);
     Self {
       filter: format!("//Event[{}]", filter)
     }
