@@ -4,12 +4,67 @@ use libxml::tree::document::{Document, SaveOptions};
 use libxml::tree::node::Node;
 use libxml::xpath::Context;
 
+pub enum SystemFilter {
+  Provider(String),
+  EventID(String),
+  Level(String),
+  Task(String),
+  Opcode(String),
+  Keywords(String),
+  TimeCreated(String),
+  EventRecordID(String),
+  ActivityID(String),
+  RelatedActivityID(String),
+  ProcessID(String),
+  ThreadID(String),
+  Channel(String),
+  Computer(String),
+  UserID(String)
+}
+
+impl ToString for SystemFilter {
+  fn to_string(&self) -> String {
+    match self {
+      Self::Provider(v) => format!("Provider/@Name='{}'", v),
+      Self::EventID(v) => format!("EventID/text()='{}'", v),
+      Self::Level(v) => format!("Level/text()='{}'", v),
+      Self::Task(v) => format!("Task/text()='{}'", v),
+      Self::Opcode(v) => format!("Opcode/text()='{}'", v),
+      Self::Keywords(v) => format!("Keywords/text()='{}'", v),
+      Self::TimeCreated(v) => format!("TimeCreated/@SystemTime='{}'", v),
+      Self::EventRecordID(v) => format!("EventRecordID/text()='{}'", v),
+      Self::ActivityID(v) => format!("Correlation/@ActivityID='{}'", v),
+      Self::RelatedActivityID(v) => format!("Correlation/@RelatedActivityID='{}'", v),
+      Self::ProcessID(v) => format!("Execution/@ProcessID='{}'", v),
+      Self::ThreadID(v) => format!("Execution/@ThreadID='{}'", v),
+      Self::Channel(v) => format!("Channel/text()='{}'", v),
+      Self::Computer(v) => format!("Computer/text()='{}'", v),
+      Self::UserID(v) => format!("Security/@UserID='{}'", v),
+    }
+  }
+}
+
+pub enum RecordFilterSection {
+  System(SystemFilter),
+  EventData(String, String)
+}
+
+impl ToString for RecordFilterSection {
+  fn to_string(&self) -> String{
+    match self {
+      Self::System(s) => format!("System/{}", s.to_string()),
+      Self::EventData(k,v) => format!("EventData/Data[@Name='{}']='{}'", k , v)
+    }
+  }
+}
+
 pub struct XPathFilter {
   filter: String,
 }
 
 impl XPathFilter {
-  pub fn new(filter: String) -> Self {
+  pub fn new(system_filters: Vec<RecordFilterSection>) -> Self {
+    let filter = system_filters.iter().map(|f| f.to_string()).collect::<Vec<String>>().join(" and ");
     Self { filter }
   }
 
