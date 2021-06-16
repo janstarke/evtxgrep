@@ -46,14 +46,14 @@ impl ToString for SystemFilter {
 
 pub enum RecordFilterSection {
   System(SystemFilter),
-  //EventData(String, String)
+  EventData(String, String)
 }
 
 impl ToString for RecordFilterSection {
   fn to_string(&self) -> String{
     match self {
       Self::System(s) => format!("System/{}", s.to_string()),
-      //Self::EventData(k,v) => format!("EventData/Data[@Name='{}']='{}'", k , v)
+      Self::EventData(k,v) => format!("EventData/Data[@Name='{}']='{}'", k , v)
     }
   }
 }

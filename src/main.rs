@@ -30,6 +30,13 @@ macro_rules! filter_opts {
                         .arg(Arg::with_name("use_or")
                             .short("O").long("or")
                             .help("combine filters non-inclusively (use OR instead of AND, which is the default) "))
+                        .arg(Arg::with_name("data_filter")
+                            .short("D")
+                            .long("data")
+                            .multiple(true)
+                            .takes_value(true)
+                            .number_of_values(1)
+                            .help("key-value pair, separated by colon, to filter based on entries in the data section"))
                         ;
 
         let mut idx = 0;
@@ -43,6 +50,17 @@ macro_rules! filter_opts {
         let matches = app.get_matches();
         $f = matches.value_of("EVTXFILE").unwrap().to_string();
         $use_or = matches.is_present("use_or");
+        if let Some(values) = matches.values_of("data_filter") {
+            for v in values {
+                let pair: Vec<&str> = v.splitn(2, ":").collect();
+                if pair.len() != 2 {
+                    eprintln!("illegal data filter: '{}'", v);
+                    std::process::exit(-1);
+                }
+                $sf.push(RecordFilterSection::EventData(pair[0].to_owned(), pair[1].to_owned()));
+            }
+        }
+        
 
         $(
             if let Some(value) = matches.value_of(stringify!($v)) {
