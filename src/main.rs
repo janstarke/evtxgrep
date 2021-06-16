@@ -1,11 +1,11 @@
 use crate::xml_visitor::*;
 use anyhow::{Error, Result};
-use argparse::{ArgumentParser, Store, StoreTrue};
 use convert_case::{Case, Casing};
 use evtx::*;
 use simple_logger::SimpleLogger;
 use std::path::PathBuf;
 use std::string::String;
+use clap::{Arg, App};
 
 mod xml_visitor;
 
@@ -14,32 +14,39 @@ macro_rules! filter_opts {
     ($sf: expr, $f: ident, $use_or: ident, $( $p:ident :: $e:ident($v: ident) ),* ) => {
         let mut args = Vec::new();
         $(
-            let mut $v = String::new();
             let opt_name = stringify!($v);
-            let cli_option = format!("--{}", opt_name.replace("_", "-"));
+            let cli_option = opt_name.replace("_", "-");
             let evtx_name = opt_name.to_case(Case::UpperCamel).replace("Id", "ID");
             args.push((cli_option, format!("filter based on {}", evtx_name)));
         )*
-        {
-            let mut ap = ArgumentParser::new();
-            ap.set_description("regular expression based search in Windows Event Log files");
-            ap.refer(&mut $f)
-                .add_argument("evtxfile", Store, "name of the evtx file")
-                .required();
-            ap.refer(&mut $use_or)
-                .add_option(&["-O", "--or"], StoreTrue, "combine filters non-inclusively (use OR instead of AND, which is the default) ");
 
-            let mut idx = 0;
-            $(
-                idx += 1; // we are always one step too far, but this avoids an unused_assigments warning
-                ap.refer(&mut $v).add_option(&[&args[idx-1].0], Store, &args[idx-1].1);
-            )*
-            ap.parse_args_or_exit();
-        }
+        let app = App::new(env!("CARGO_PKG_NAME"))
+                        .version(env!("CARGO_PKG_VERSION"))
+                        .author(env!("CARGO_PKG_AUTHORS"))
+                        .about(env!("CARGO_PKG_DESCRIPTION"))
+                        .arg(Arg::with_name("EVTXFILE")
+                            .help("name of the evtx file")
+                            .required(true))
+                        .arg(Arg::with_name("use_or")
+                            .short("O").long("or")
+                            .help("combine filters non-inclusively (use OR instead of AND, which is the default) "))
+                        ;
+
+        let mut idx = 0;
+        $(
+            idx += 1; // we are always one step too far, but this avoids an unused_assigments warning
+            let app = app.arg(Arg::with_name(stringify!($v))
+                .long(&args[idx-1].0)
+                .help(&args[idx-1].1)
+                .takes_value(true));
+        )*
+        let matches = app.get_matches();
+        $f = matches.value_of("EVTXFILE").unwrap().to_string();
+        $use_or = matches.is_present("use_or");
 
         $(
-            if !$v.is_empty() {
-                $sf.push(RecordFilterSection::System($p::$e($v)))
+            if let Some(value) = matches.value_of(stringify!($v)) {
+                $sf.push(RecordFilterSection::System($p::$e(value.to_string())))
             }
         )*
     };
@@ -51,9 +58,12 @@ fn main() -> Result<()> {
         .init()
         .unwrap();
 
-    let mut evtxfile = String::new();
+    #[allow(unused_mut)]
+    let mut evtxfile: String;
+
+    #[allow(unused_mut)]
     let mut use_or: bool = false;
-    //let mut filter_str = String::new();
+    
     let mut filters: Vec<RecordFilterSection>= Vec::new();
 
     filter_opts!(
