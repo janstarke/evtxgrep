@@ -1,25 +1,17 @@
 use crate::xml_visitor::*;
 use anyhow::{Error, Result};
+use clap::{App, Arg};
 use convert_case::{Case, Casing};
 use evtx::*;
 use simple_logger::SimpleLogger;
 use std::path::PathBuf;
 use std::string::String;
-use clap::{Arg, App};
 
 mod xml_visitor;
 
 #[allow(unused_assignments)]
 macro_rules! filter_opts {
     ($sf: expr, $f: ident, $use_or: ident, $( $p:ident :: $e:ident($v: ident) ),* ) => {
-        let mut args = Vec::new();
-        $(
-            let opt_name = stringify!($v);
-            let cli_option = opt_name.replace("_", "-");
-            let evtx_name = opt_name.to_case(Case::UpperCamel).replace("Id", "ID");
-            args.push((cli_option, format!("filter based on {}", evtx_name)));
-        )*
-
         let app = App::new(env!("CARGO_PKG_NAME"))
                         .version(env!("CARGO_PKG_VERSION"))
                         .author(env!("CARGO_PKG_AUTHORS"))
@@ -38,13 +30,13 @@ macro_rules! filter_opts {
                             .number_of_values(1)
                             .help("key-value pair, separated by colon, to filter based on entries in the data section"))
                         ;
-
-        let mut idx = 0;
         $(
-            idx += 1; // we are always one step too far, but this avoids an unused_assigments warning
+            let opt_name = stringify!($v);
+            let cli_option = opt_name.replace("_", "-");
+            let message = format!("filter based on {}", opt_name.to_case(Case::UpperCamel).replace("Id", "ID"));
             let app = app.arg(Arg::with_name(stringify!($v))
-                .long(&args[idx-1].0)
-                .help(&args[idx-1].1)
+                .long(&cli_option)
+                .help(&message)
                 .takes_value(true));
         )*
         let matches = app.get_matches();
@@ -60,7 +52,6 @@ macro_rules! filter_opts {
                 $sf.push(RecordFilterSection::EventData(pair[0].to_owned(), pair[1].to_owned()));
             }
         }
-        
 
         $(
             if let Some(value) = matches.value_of(stringify!($v)) {
@@ -80,9 +71,9 @@ fn main() -> Result<()> {
     let mut evtxfile: String;
 
     #[allow(unused_mut)]
-    let mut use_or: bool = false;
-    
-    let mut filters: Vec<RecordFilterSection>= Vec::new();
+    let mut use_or: bool;
+
+    let mut filters: Vec<RecordFilterSection> = Vec::new();
 
     filter_opts!(
         filters,
