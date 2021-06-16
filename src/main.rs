@@ -35,10 +35,9 @@ macro_rules! filter_opts {
             ap.parse_args_or_exit();
         }
 
-        let mut system_filters = Vec::new();
         $(
             if !$v.is_empty() {
-                system_filters.push(RecordFilterSection::System($p::$e($v)))
+                $sf.push(RecordFilterSection::System($p::$e($v)))
             }
         )*
     };
@@ -51,8 +50,8 @@ fn main() -> Result<()> {
         .unwrap();
 
     let mut evtxfile = String::new();
-    let mut filter_str = String::new();
-    let filters: Vec<RecordFilterSection>= Vec::new();
+    //let mut filter_str = String::new();
+    let mut filters: Vec<RecordFilterSection>= Vec::new();
 
     filter_opts!(
         filters,
@@ -82,7 +81,7 @@ fn main() -> Result<()> {
     let parser = EvtxParser::from_path(fp)?;
     let mut parser = parser.with_configuration(settings);
 
-    let filter = if filter_str.is_empty() && filters.is_empty() {
+    let filter = if filters.is_empty() {
         None
     } else {
         Some(XPathFilter::new(filters))
@@ -91,6 +90,8 @@ fn main() -> Result<()> {
     #[cfg(debug_assertions)]
     if let Some(ref filter) = filter {
         println!("match against {}", filter.filter());
+    } else {
+        panic!("no match");
     }
 
     let records = parser
