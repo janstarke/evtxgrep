@@ -3,57 +3,118 @@ use evtx::EvtxStructureVisitor;
 use libxml::tree::document::{Document, SaveOptions};
 use libxml::tree::node::Node;
 use libxml::xpath::Context;
+use strum_macros::{Display, EnumIter};
 
-pub enum SystemFilter {
-  Provider(String),
-  EventID(String),
-  Level(String),
-  Task(String),
-  Opcode(String),
-  Keywords(String),
-  TimeCreated(String),
-  EventRecordID(String),
-  ActivityID(String),
-  RelatedActivityID(String),
-  ProcessID(String),
-  ThreadID(String),
-  Channel(String),
-  Computer(String),
-  UserID(String)
+#[derive(Display, EnumIter)]
+pub enum SystemFilterType {
+  Provider,
+  EventID,
+  Level,
+  Task,
+  Opcode,
+  Keywords,
+  TimeCreated,
+  EventRecordID,
+  ActivityID,
+  RelatedActivityID,
+  ProcessID,
+  ThreadID,
+  Channel,
+  Computer,
+  UserID,
+}
+
+impl SystemFilterType {
+  pub fn xpath_attribute(&self) -> &str {
+    match self {
+      Self::Provider => "Provider/@Name",
+      Self::EventID => "EventID/text()",
+      Self::Level => "Level/text()",
+      Self::Task => "Task/text()",
+      Self::Opcode => "Opcode/text()",
+      Self::Keywords => "Keywords/text()",
+      Self::TimeCreated => "TimeCreated/@SystemTime",
+      Self::EventRecordID => "EventRecordID/text()",
+      Self::ActivityID => "Correlation/@ActivityID",
+      Self::RelatedActivityID => "Correlation/@RelatedActivityID",
+      Self::ProcessID => "Execution/@ProcessID",
+      Self::ThreadID => "Execution/@ThreadID",
+      Self::Channel => "Channel/text()",
+      Self::Computer => "Computer/text()",
+      Self::UserID => "Security/@UserID",
+    }
+  }
+}
+
+pub struct SystemFilter {
+  filter_type: SystemFilterType,
+  value: String,
+  ignore_case: bool,
 }
 
 impl ToString for SystemFilter {
   fn to_string(&self) -> String {
-    match self {
-      Self::Provider(v) => format!("Provider/@Name='{}'", v),
-      Self::EventID(v) => format!("EventID/text()='{}'", v),
-      Self::Level(v) => format!("Level/text()='{}'", v),
-      Self::Task(v) => format!("Task/text()='{}'", v),
-      Self::Opcode(v) => format!("Opcode/text()='{}'", v),
-      Self::Keywords(v) => format!("Keywords/text()='{}'", v),
-      Self::TimeCreated(v) => format!("TimeCreated/@SystemTime='{}'", v),
-      Self::EventRecordID(v) => format!("EventRecordID/text()='{}'", v),
-      Self::ActivityID(v) => format!("Correlation/@ActivityID='{}'", v),
-      Self::RelatedActivityID(v) => format!("Correlation/@RelatedActivityID='{}'", v),
-      Self::ProcessID(v) => format!("Execution/@ProcessID='{}'", v),
-      Self::ThreadID(v) => format!("Execution/@ThreadID='{}'", v),
-      Self::Channel(v) => format!("Channel/text()='{}'", v),
-      Self::Computer(v) => format!("Computer/text()='{}'", v),
-      Self::UserID(v) => format!("Security/@UserID='{}'", v),
+    if self.ignore_case {
+      format!(
+        "translate('{}','abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ')='{}'",
+        self.filter_type.xpath_attribute(),
+        self.value.to_uppercase()
+      )
+    } else {
+      format!("{}='{}'", self.filter_type.xpath_attribute(), self.value)
+    }
+  }
+}
+
+impl SystemFilter {
+  pub fn new(filter_type: SystemFilterType, value: String, ignore_case: bool) -> Self {
+    Self {
+      filter_type,
+      value,
+      ignore_case,
+    }
+  }
+}
+
+pub struct DataFilter {
+  field_name: String,
+  field_value: String,
+  ignore_case: bool,
+}
+
+impl DataFilter {
+  pub fn new(field_name: String, field_value: String, ignore_case: bool) -> Self {
+    Self {
+      field_name,
+      field_value,
+      ignore_case,
+    }
+  }
+}
+
+impl ToString for DataFilter {
+  fn to_string(&self) -> String {
+    if self.ignore_case {
+      format!("translate(EventData/Data[translate(@Name,'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ')='{}'],'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ')='{}'", self.field_name.to_uppercase() , self.field_value.to_uppercase())
+    } else {
+      format!(
+        "EventData/Data[@Name='{}']='{}'",
+        self.field_name, self.field_value
+      )
     }
   }
 }
 
 pub enum RecordFilterSection {
   System(SystemFilter),
-  EventData(String, String)
+  EventData(DataFilter),
 }
 
 impl ToString for RecordFilterSection {
-  fn to_string(&self) -> String{
+  fn to_string(&self) -> String {
     match self {
       Self::System(s) => format!("System/{}", s.to_string()),
-      Self::EventData(k,v) => format!("EventData/Data[@Name='{}']='{}'", k , v)
+      Self::EventData(d) => d.to_string(),
     }
   }
 }
@@ -65,9 +126,13 @@ pub struct XPathFilter {
 impl XPathFilter {
   pub fn new(system_filters: Vec<RecordFilterSection>, use_or: bool) -> Self {
     let combination = if use_or { " or " } else { " and " };
-    let filter = system_filters.iter().map(|f| f.to_string()).collect::<Vec<String>>().join(combination);
+    let filter = system_filters
+      .iter()
+      .map(|f| f.to_string())
+      .collect::<Vec<String>>()
+      .join(combination);
     Self {
-      filter: format!("//Event[{}]", filter)
+      filter: format!("//Event[{}]", filter),
     }
   }
 
@@ -142,10 +207,7 @@ impl<'f> EvtxStructureVisitor for XmlVisitor<'f> {
 
   // called upon element content
   fn visit_characters(&mut self, _value: &str) -> SerializationResult<()> {
-    let node = self
-      .stack
-      .last_mut()
-      .unwrap();
+    let node = self.stack.last_mut().unwrap();
     if node.is_element_node() {
       node.set_content(_value)?;
     } else {
