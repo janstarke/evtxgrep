@@ -1,4 +1,5 @@
-use crate::xml_visitor::*;
+use crate::visitor::*;
+use crate::filter::*;
 use anyhow::{Error, Result};
 use clap::{App, Arg};
 use convert_case::{Case, Casing};
@@ -7,7 +8,8 @@ use simple_logger::SimpleLogger;
 use std::path::PathBuf;
 use strum::IntoEnumIterator;
 
-mod xml_visitor;
+mod visitor;
+mod filter;
 
 fn main() -> Result<()> {
     SimpleLogger::new()
