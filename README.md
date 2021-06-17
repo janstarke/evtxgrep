@@ -24,8 +24,9 @@ OPTIONS:
         --channel <Channel>                          filter based on Channel
         --computer <Computer>                        filter based on Computer
     -D, --data <DATA:FILTER>...
-            key-value pair, separated by colon, to filter based on entries in the data section
-
+            key-value pair, separated by colon, to filter based on entries in the data section. For example, to search
+            for logins of the user 'Administrator', you would use `--data TargetUserName:Administrator`. This option can
+            be used multiple times.
         --event-id <EventID>                         filter based on EventID
         --event-record-id <EventRecordID>            filter based on EventRecordID
         --keywords <Keywords>                        filter based on Keywords

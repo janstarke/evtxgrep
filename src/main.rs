@@ -34,7 +34,7 @@ fn main() -> Result<()> {
         .multiple(true)
         .takes_value(true)
         .number_of_values(1)
-        .help("key-value pair, separated by colon, to filter based on entries in the data section"))
+        .help("key-value pair, separated by colon, to filter based on entries in the data section. For example, to search for logins of the user 'Administrator', you would use `--data TargetUserName:Administrator`. This option can be used multiple times."))
     ;
     let mut option_strings = Vec::new();
     for filter_type in SystemFilterType::iter() {
