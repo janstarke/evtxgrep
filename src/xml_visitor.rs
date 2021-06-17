@@ -56,12 +56,12 @@ impl ToString for SystemFilter {
   fn to_string(&self) -> String {
     if self.ignore_case {
       format!(
-        "translate('{}','abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ')='{}'",
+        "translate(System/{},'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ')='{}'",
         self.filter_type.xpath_attribute(),
         self.value.to_uppercase()
       )
     } else {
-      format!("{}='{}'", self.filter_type.xpath_attribute(), self.value)
+      format!("System/{}='{}'", self.filter_type.xpath_attribute(), self.value)
     }
   }
 }
@@ -113,7 +113,7 @@ pub enum RecordFilterSection {
 impl ToString for RecordFilterSection {
   fn to_string(&self) -> String {
     match self {
-      Self::System(s) => format!("System/{}", s.to_string()),
+      Self::System(s) => s.to_string(),
       Self::EventData(d) => d.to_string(),
     }
   }
