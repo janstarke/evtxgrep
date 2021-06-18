@@ -16,6 +16,7 @@ USAGE:
 FLAGS:
     -h, --help           Prints help information
     -i, --ignore-case    ignore case
+    -S, --sorted         sort records based on their event record id
     -O, --or             combine filters non-inclusively (use OR instead of AND, which is the default) 
     -V, --version        Prints version information
 

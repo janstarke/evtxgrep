@@ -1,5 +1,6 @@
 use crate::visitor::*;
 use crate::filter::*;
+use crate::record_info::*;
 use anyhow::{Error, Result};
 use clap::{App, Arg};
 use convert_case::{Case, Casing};
@@ -10,6 +11,7 @@ use strum::IntoEnumIterator;
 
 mod visitor;
 mod filter;
+mod record_info;
 
 fn main() -> Result<()> {
     SimpleLogger::new()
@@ -30,6 +32,9 @@ fn main() -> Result<()> {
     .arg(Arg::with_name("ignore_case")
         .short("i").long("ignore-case")
         .help("ignore case"))
+    .arg(Arg::with_name("sorted")
+        .short("S").long("sorted")
+        .help("sort records based on their event record id"))
     .arg(Arg::with_name("DATA:FILTER")
         .short("D")
         .long("data")
@@ -60,6 +65,7 @@ fn main() -> Result<()> {
     let evtxfile = matches.value_of("EVTXFILE").unwrap();
     let use_or = matches.is_present("use_or");
     let ignore_case = matches.is_present("ignore_case");
+    let sorted = matches.is_present("sorted");
 
     let mut filters: Vec<RecordFilterSection> = Vec::new();
     for filter_type in SystemFilterType::iter() {
@@ -102,19 +108,29 @@ fn main() -> Result<()> {
     }
 
     let records = parser
-        .records_to_visitor(|| XmlVisitor::new(&filter))
-        .filter_map(|r| match r {
-            Ok(x) => Some(x),
-            Err(e) => {
-                log::warn!("parser error: {}", e);
-                None
-            }
-        });
-
-    for record in records {
-        if let Some(s) = record {
-            println!("{}", s);
+    .records_to_visitor(|| XmlVisitor::new(&filter))
+    .filter_map(|r| match r {
+        Ok(x) => match x {
+            Some(r) => Some(r),
+            None => None
         }
+        Err(e) => {
+            log::warn!("parser error: {}", e);
+            None
+        }
+    });
+    if sorted {
+        let mut records: Vec<RecordInfo> = records.collect();
+        records.sort_unstable();
+        display_records(records.into_iter());
+    } else {
+        display_records(records);
     }
     Ok(())
+}
+
+fn display_records(records: impl Iterator<Item=RecordInfo>) {
+    for record in records {
+        println!("{}", record.xml_data);
+    }
 }

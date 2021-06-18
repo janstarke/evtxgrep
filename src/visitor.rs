@@ -1,8 +1,9 @@
+use crate::filter::XPathFilter;
+use crate::record_info::RecordInfo;
 use evtx::err::SerializationResult;
 use evtx::EvtxStructureVisitor;
 use libxml::tree::document::{Document, SaveOptions};
 use libxml::tree::node::Node;
-use crate::filter::XPathFilter;
 
 pub struct XmlVisitor<'f> {
   doc: Document,
@@ -30,21 +31,21 @@ impl<'f> ToString for XmlVisitor<'f> {
 }
 
 impl<'f> EvtxStructureVisitor for XmlVisitor<'f> {
-  type VisitorResult = Option<String>;
+  type VisitorResult = Option<RecordInfo>;
 
   fn get_result(
     &self,
-    _event_record_id: u64,
-    _timestamp: chrono::DateTime<chrono::Utc>,
+    event_record_id: u64,
+    timestamp: chrono::DateTime<chrono::Utc>,
   ) -> Self::VisitorResult {
     if let Some(filter) = self.filter {
       if filter.matches(&self.doc) {
-        Some(self.to_string())
+        Some(RecordInfo::new(self.to_string(), event_record_id, timestamp))
       } else {
         None
       }
     } else {
-      Some(self.to_string())
+      Some(RecordInfo::new(self.to_string(), event_record_id, timestamp))
     }
   }
 
@@ -77,7 +78,8 @@ impl<'f> EvtxStructureVisitor for XmlVisitor<'f> {
     attributes: I,
   ) -> SerializationResult<()>
   where
-    'a: 'b, I: Iterator<Item = (&'b str, &'b str)> + 'b
+    'a: 'b,
+    I: Iterator<Item = (&'b str, &'b str)> + 'b,
   {
     let mut node = Node::new(name, None, &self.doc).unwrap();
 
