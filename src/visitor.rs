@@ -71,34 +71,13 @@ impl<'f> EvtxStructureVisitor for XmlVisitor<'f> {
     Ok(())
   }
 
-  fn visit_empty_element<'a, 'b>(
+  fn visit_start_element<'a, 'b, I>(
     &'a mut self,
     name: &'b str,
-    attributes: Box<dyn Iterator<Item = (&'b str, &'b str)> + 'b>,
+    attributes: I,
   ) -> SerializationResult<()>
   where
-    'a: 'b,
-  {
-    let mut node = self
-      .stack
-      .last_mut()
-      .unwrap()
-      .add_text_child(None, name, "")
-      .unwrap();
-
-    for (key, value) in attributes {
-      node.set_attribute(key, value).unwrap();
-    }
-    Ok(())
-  }
-
-  fn visit_start_element<'a, 'b>(
-    &'a mut self,
-    name: &'b str,
-    attributes: Box<dyn Iterator<Item = (&'b str, &'b str)> + 'b>,
-  ) -> SerializationResult<()>
-  where
-    'a: 'b,
+    'a: 'b, I: Iterator<Item = (&'b str, &'b str)> + 'b
   {
     let mut node = Node::new(name, None, &self.doc).unwrap();
 
