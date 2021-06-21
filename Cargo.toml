@@ -9,8 +9,8 @@ license-file = "LICENSE"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-evtx = { git = "https://github.com/janstarke/evtx" }
-#evtx = { path = "../evtx" }
+#evtx = { git = "https://github.com/janstarke/evtx" }
+evtx = { path = "./evtx-0.7.3-alpha.0" }
 anyhow = "1.0.40"
 clap = "2.33"
 log = "0.4"
