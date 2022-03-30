@@ -1,6 +1,7 @@
 use crate::filter::XPathFilter;
 use crate::record_info::RecordInfo;
 use evtx::err::SerializationResult;
+use evtx::EvtxStructureVisitor;
 use libxml::tree::document::{Document, SaveOptions};
 use libxml::tree::node::Node;
 
@@ -62,11 +63,13 @@ impl<'f> EvtxStructureVisitor for XmlVisitor<'f> {
   fn visit_characters(&mut self, _value: &str) -> SerializationResult<()> {
     let node = self.stack.last_mut().unwrap();
     if node.is_element_node() {
-      node.set_content(_value)?;
+      //FIXME: don't ignore that error
+      node.set_content(_value).unwrap();
     } else {
       let mut content = node.get_content();
       content.push_str(_value);
-      node.set_content(&content)?;
+      //FIXME: don't ignore that error
+      node.set_content(&content).unwrap();
     }
     Ok(())
   }
@@ -83,12 +86,14 @@ impl<'f> EvtxStructureVisitor for XmlVisitor<'f> {
     let mut node = Node::new(name, None, &self.doc).unwrap();
 
     for (key, value) in attributes {
-      node.set_attribute(key, value)?;
+      //FIXME: don't ignore that error
+      node.set_attribute(key, value).unwrap();
     }
     if self.stack.is_empty() {
       self.doc.set_root_element(&node);
     } else {
-      let _ = self.stack.last_mut().unwrap().add_child(&mut node);
+      //FIXME: don't ignore that error
+      self.stack.last_mut().unwrap().add_child(&mut node).unwrap();
     }
     self.stack.push(node);
     Ok(())

@@ -1,6 +1,6 @@
 [package]
 name = "evtxgrep"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Jan Starke <Jan.Starke@t-systems.com>"]
 edition = "2018"
 description = "XPath based search in Windows Event Log files"
@@ -9,8 +9,8 @@ license-file = "LICENSE"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-#evtx = { git = "https://github.com/janstarke/evtx" }
-evtx = "0.7"
+evtx = { git = "https://github.com/janstarke/evtx", branch = "feature/visitor"}
+#evtx = "0.7"
 anyhow = "1.0.40"
 clap = "2"
 log = "0.4"
