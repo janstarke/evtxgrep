@@ -1,7 +1,6 @@
 use crate::filter::XPathFilter;
 use crate::record_info::RecordInfo;
 use evtx::err::SerializationResult;
-use evtx::EvtxStructureVisitor;
 use libxml::tree::document::{Document, SaveOptions};
 use libxml::tree::node::Node;
 
