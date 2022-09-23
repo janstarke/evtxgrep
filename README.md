@@ -3,7 +3,7 @@ filtering in Windows Event Log files
 
 ## Installation
 
-Make sure to have `libxml` and `pkg-config` installed on your system
+Make sure to have `libxml2-dev` and `pkg-config` installed on your system
 
 ```shell
 cargo install --git https://github.com/janstarke/evtxgrep.git
